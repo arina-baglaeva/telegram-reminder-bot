@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.skypro.telegram_bot.service.NotificationTaskService;
 
 import java.util.List;
 
@@ -17,9 +18,10 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
 
     private final TelegramBot bot;
-
-    public TelegramBotUpdatesListener(@Value("${telegram.bot.token}") String botToken) {
+    private final NotificationTaskService taskService;
+    public TelegramBotUpdatesListener(@Value("${telegram.bot.token}") String botToken, NotificationTaskService taskService) {
         this.bot = new TelegramBot(botToken);
+        this.taskService=taskService;
     }
 
     @PostConstruct
@@ -33,7 +35,6 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         try {
             for (Update update : updates) {
                 if (update.message() != null && update.message().text() != null) {
-
                     String text = update.message().text();
                     Long chatId = update.message().chat().id();
 
@@ -42,6 +43,18 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                     if ("/start".equals(text)) {
                         SendMessage message = new SendMessage(chatId, "Привет! Я бот-напоминалка. Напиши мне задачу в формате: 01.01.2022 20:00 Сделать домашнюю работу");
                         bot.execute(message);
+                    } else {
+                        boolean isSaved = taskService.processMessage(chatId, text);
+
+                        String replyText;
+                        if (isSaved) {
+                            replyText = "Задача принята! Я обязательно напомню.";
+                        } else {
+                            replyText = "Я не смог распознать задачу. Пожалуйста, используй формат: 01.01.2022 20:00 Текст напоминания";
+                        }
+
+                        SendMessage confirmation = new SendMessage(chatId, replyText);
+                        bot.execute(confirmation);
                     }
                 }
             }
