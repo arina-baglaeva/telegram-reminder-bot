@@ -20,6 +20,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     private final TelegramBot bot;
     private final NotificationTaskService taskService;
     public TelegramBotUpdatesListener(@Value("${telegram.bot.token}") String botToken, NotificationTaskService taskService) {
+
         this.bot = new TelegramBot(botToken);
         this.taskService=taskService;
     }
@@ -42,7 +43,8 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
                     if ("/start".equals(text)) {
                         SendMessage message = new SendMessage(chatId, "Привет! Я бот-напоминалка. Напиши мне задачу в формате: 01.01.2022 20:00 Сделать домашнюю работу");
-                        bot.execute(message);
+                        com.pengrad.telegrambot.response.SendResponse response = bot.execute(message);
+                        System.out.println("DEBUG ОТВЕТ ТЕЛЕГРАМА: " + response.isOk() + " | " + response.description());
                     } else {
                         boolean isSaved = taskService.processMessage(chatId, text);
 
